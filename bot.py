@@ -7,21 +7,25 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from motor.motor_asyncio import AsyncIOMotorClient
 
+# Bot messages
 ACCEPTED_TEXT = "Hey {user}\n\nYour Request For {chat} Is Accepted ✅"
 START_TEXT = "Hai {}\n\nI am Auto Request Accept Bot With Working For All Channel. Add Me In Your Channel To Use"
 
+# Environment variables
 API_ID = int(os.environ.get('API_ID'))
 API_HASH = os.environ.get('API_HASH')
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 DB_URL = os.environ.get('DB_URL')
 ADMINS = list(map(int, os.environ.get('ADMINS').split(',')))
 
+# Database client
 Dbclient = AsyncIOMotorClient(DB_URL)
 Cluster = Dbclient['Cluster0']
 Data = Cluster['users']
 Bot = Client(name='AutoAcceptBot', api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-CHUNK_SIZE = 100  # Adjust chunk size as needed
+# Adjust chunk size for broadcast
+CHUNK_SIZE = 100
 
 async def send_message(user_id, b_msg, sts, total_users, done, success, failed):
     try:
