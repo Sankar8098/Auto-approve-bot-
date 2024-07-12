@@ -1,16 +1,20 @@
+from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
 import asyncio
 import datetime
 import time
 
-from pyrogram.errors import InputUserDeactivated, UserNotParticipant, FloodWait, UserIsBlocked, PeerIdInvalid
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+ACCEPTED_TEXT = "Hey {user}\n\nYour Request For {chat} Is Accepted ✅"
+START_TEXT = "Hai {}\n\nI am Auto Request Accept Bot With Working For All Channel. Add Me In Your Channel To Use"
 
-API_ID = int(env.get('API_ID'))
-API_HASH = env.get('API_HASH')
-BOT_TOKEN = env.get('BOT_TOKEN')
-DB_URL = env.get('DB_URL')
-ADMINS = int(env.get('ADMINS'))
+API_ID = int(os.environ.get('API_ID'))
+API_HASH = os.environ.get('API_HASH')
+BOT_TOKEN = os.environ.get('BOT_TOKEN')
+DB_URL = os.environ.get('DB_URL')
+ADMINS = int(os.environ.get('ADMINS'))
 
 Dbclient = AsyncIOMotorClient(DB_URL)
 Cluster = Dbclient['Cluster0']
@@ -35,7 +39,6 @@ async def send_message(user_id, b_msg, sts, total_users, done, success, failed):
     except Exception as e:
         return 0, 1  # success, failure
 
-
 async def broadcast_messages(b_msg, sts, users, total_users):
     done = 0
     success = 0
@@ -56,7 +59,6 @@ async def broadcast_messages(b_msg, sts, users, total_users):
 
     return done, success, failed
 
-
 @Bot.on_message(filters.command(["broadcast", "users"]) & filters.user(ADMINS))
 async def broadcast(c, m):
     if m.text == "/users":
@@ -75,18 +77,16 @@ async def broadcast(c, m):
     await sts.delete()
     await m.reply_text(f"Broadcast Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nFailed: {failed}", quote=True)
 
-
 @Bot.on_message(filters.command("start") & filters.private)
 async def start_handler(c, m):
     user_id = m.from_user.id
     if not await Data.find_one({'id': user_id}):
         await Data.insert_one({'id': user_id})
     button = [[
-        InlineKeyboardButton('Updates', url='https://t.me/Tamil_Movies_Guys'),
-        InlineKeyboardButton('Support', url='https://t.me/Tamil_Movies_Guys')
+        InlineKeyboardButton('Updates', url='https://t.me/mkn_bots_updates'),
+        InlineKeyboardButton('Support', url='https://t.me/MKN_BOTZ_DISCUSSION_GROUP')
     ]]
     return await m.reply_text(text=START_TEXT.format(m.from_user.mention), disable_web_page_preview=True, reply_markup=InlineKeyboardMarkup(button))
-
 
 @Bot.on_chat_join_request()
 async def req_accept(c, m):
@@ -99,6 +99,5 @@ async def req_accept(c, m):
         await c.send_message(user_id, ACCEPTED_TEXT.format(user=m.from_user.mention, chat=m.chat.title))
     except Exception as e:
         print(e)
-
 
 Bot.run()
