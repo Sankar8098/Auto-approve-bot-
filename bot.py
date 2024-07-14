@@ -24,33 +24,34 @@ Cluster = Dbclient['Cluster0']
 Data = Cluster['users']
 Bot = Client(name='AutoAcceptBot', api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Adjust chunk size for broadcast
+# Initial chunk size for broadcast
 CHUNK_SIZE = 100
 
-async def send_message(user_id, b_msg, sts, total_users, done, success, failed):
+async def send_message(user_id, b_msg):
     try:
         await b_msg.copy(chat_id=user_id)
         return 1, 0  # success, failure
     except FloodWait as e:
         await asyncio.sleep(e.value)
-        await b_msg.copy(chat_id=user_id)
-        return 1, 0  # success, failure
+        return await send_message(user_id, b_msg)
     except (InputUserDeactivated, PeerIdInvalid):
         await Data.delete_many({'id': user_id})
         return 0, 1  # success, failure
     except UserIsBlocked:
         return 0, 1  # success, failure
     except Exception as e:
+        print(f"Error sending message to {user_id}: {e}")
         return 0, 1  # success, failure
 
 async def broadcast_messages(b_msg, sts, users, total_users):
     done = 0
     success = 0
     failed = 0
+    start_time = time.time()
 
     for i in range(0, total_users, CHUNK_SIZE):
         chunk = users[i:i + CHUNK_SIZE]
-        tasks = [send_message(int(user['id']), b_msg, sts, total_users, done, success, failed) for user in chunk]
+        tasks = [send_message(int(user['id']), b_msg) for user in chunk]
         results = await asyncio.gather(*tasks)
 
         for res in results:
@@ -61,7 +62,9 @@ async def broadcast_messages(b_msg, sts, users, total_users):
 
         await sts.edit(f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nFailed: {failed}")
 
-    return done, success, failed
+    time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
+    await sts.delete()
+    return done, success, failed, time_taken
 
 @Bot.on_message(filters.command(["broadcast", "users"]) & filters.user(ADMINS))
 async def broadcast(c, m):
@@ -74,11 +77,8 @@ async def broadcast(c, m):
     total_users = await Data.count_documents({})
     users = await users_cursor.to_list(length=total_users)
 
-    start_time = time.time()
-    done, success, failed = await broadcast_messages(b_msg, sts, users, total_users)
+    done, success, failed, time_taken = await broadcast_messages(b_msg, sts, users, total_users)
 
-    time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
-    await sts.delete()
     await m.reply_text(f"Broadcast Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nFailed: {failed}", quote=True)
 
 @Bot.on_message(filters.command("start") & filters.private)
@@ -102,7 +102,7 @@ async def req_accept(c, m):
     try:
         await c.send_message(user_id, ACCEPTED_TEXT.format(user=m.from_user.mention, chat=m.chat.title))
     except Exception as e:
-        print(e)
+        print(f"Error sending acceptance message to {user_id}: {e}")
 
 # Ensure the system time is correct
 print(f"System time before running bot: {datetime.datetime.now()}")
