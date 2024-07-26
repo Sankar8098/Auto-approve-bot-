@@ -87,8 +87,8 @@ async def start_handler(c, m):
     if not await Data.find_one({'id': user_id}):
         await Data.insert_one({'id': user_id})
     button = [[
-        InlineKeyboardButton('Updates', url='https://t.me/Semma_Bots'),
-        InlineKeyboardButton('Support', url='https://t.me/+uS5QJDrq2A8yMGNk')
+        InlineKeyboardButton('Updates', url='https://t.me/TN_Bots'),
+        InlineKeyboardButton('Support', url='https://t.me/TN_Bots')
     ]]
     return await m.reply_text(text=START_TEXT.format(m.from_user.mention), disable_web_page_preview=True, reply_markup=InlineKeyboardMarkup(button))
 
